@@ -21,7 +21,10 @@ class Genome:
     def __init__(self, n: int, p: int):
         self.n_genes = n
         self.ploidy = p
-        self.genes = [[random() < 0.5 for i in range(n)] for i in range(p)]
+        #self.genes = [[random() < 0.5 for i in range(n)] for i in range(p)]
+        phase_a = [random() < 0.5 for i in range(n)]
+        phase_b = shuffle(phase_a)
+        self.genes = [phase_a, phase_b]
         self.meiosis = False
 
     def mutate(self, mutation_rate):
@@ -50,27 +53,27 @@ class Genome:
         return(crossingover_points)
 
     def perform_crossingover(self, crossingover_points):
-        new_genes = self.genes
-        crossingover_points.insert(0, 0)
-        crossingover_points.insert(len(crossingover_points), self.n_genes - 1)
-        crossing_over_segments = list(zip(crossingover_points[:len(crossingover_points) -1], crossingover_points[1:]))
-        for s in range(len(crossing_over_segments)):
-            if s % 2 == 0:
-                start = crossing_over_segments[s][0]
-                end = crossing_over_segments[s][1] + 1
-                new_genes[0][start:end] = self.genes[1][start:end]
-                new_genes[1][start:end] = self.genes[0][start:end]
-        return(new_genes)
+      new_genes = [[True for i in range(self.n_genes)] for j in range(self.ploidy)]
+      crossingover_points.insert(0, 0)
+      crossingover_points.insert(len(crossingover_points), self.n_genes)
+      crossing_over_segments = list(zip(crossingover_points[:len(crossingover_points)], crossingover_points[1:]))
+      for s in range(len(crossing_over_segments)):
+        start = crossing_over_segments[s][0]
+        end = crossing_over_segments[s][1]
+        if s % 2 == 0:
+          new_genes[0][start:end] = self.genes[1][start:end]
+          new_genes[1][start:end] = self.genes[0][start:end]
+        else:
+          new_genes[0][start:end] = self.genes[0][start:end]
+          new_genes[1][start:end] = self.genes[1][start:end]
+      return(new_genes)
 
     def generate_gametes(self, h_mean: float, h_sd: float):
         if self.meiosis == False:
             print('W: self.meiosis is False, but self.generate_gametes() was called anyway')
         self.crossingover_length_mean = h_mean
         self.crossingover_length_sd = h_sd
-        # duplicate genome
-        new_genome_a = [[] for i in range(self.ploidy)]
-        new_genome_b = [[] for i in range(self.ploidy)]
-        # determine crossing-over points separately for each one of the two copies
+        # duplicate genome and determine crossing-over points separately for each one of the two copies
         crossingover_points_a = self.generate_crossingover_points(h_mean = h_mean, h_sd = h_sd)
         crossingover_points_b = self.generate_crossingover_points(h_mean = h_mean, h_sd = h_sd)
         # perform crossing-over separately for each one of the two copies
@@ -183,12 +186,17 @@ def main():
     START_N_GENOMES = 1000
     N_GENES = 100 #10000
     PLOIDY = 2
-    MUTATION_RATE = 5 / N_GENES
+    MUTATION_RATE = 0.1
     CROSSING_OVER = True
     CROSSINGOVER_LENGTH_MEAN = 5 #50
     CROSSINGOVER_LENGTH_SD = 1 #5
     START_FRAC_SEX_GENOMES = 0.1
     N_GENERATIONS = 1000
+
+    # tests:
+    g = Genome(n=N_GENES, p=PLOIDY)
+
+
 
 if __name__ == '__main__':
     main()
