@@ -3,6 +3,7 @@
 # TODO: make non-sexually reproducible genomes aploid (?)
 # TODO: environment can change the gene_effects (additive fitness values)
 
+from copy import deepcopy
 from random import random
 from numpy.random import normal
 from random import shuffle
@@ -23,7 +24,8 @@ class Genome:
         self.ploidy = p
         #self.genes = [[random() < 0.5 for i in range(n)] for i in range(p)]
         phase_a = [random() < 0.5 for i in range(n)]
-        phase_b = shuffle(phase_a)
+        phase_b = phase_a.copy()
+        shuffle(phase_a)
         self.genes = [phase_a, phase_b]
         self.meiosis = False
 
@@ -36,8 +38,7 @@ class Genome:
     def generate_crossingover_points(self, h_mean: float, h_sd: float):
         crossingover_points = []
         x = 0
-        x = int(x + normal(loc=h_mean,
-                           scale=h_sd))
+        x = int(x + normal(loc=h_mean, scale=h_sd))
         while x < self.n_genes:
             crossingover_points.append(x)
             x = int(x + normal(loc=h_mean,
@@ -53,20 +54,16 @@ class Genome:
         return(crossingover_points)
 
     def perform_crossingover(self, crossingover_points):
-      new_genes = [[True for i in range(self.n_genes)] for j in range(self.ploidy)]
-      crossingover_points.insert(0, 0)
-      crossingover_points.insert(len(crossingover_points), self.n_genes)
-      crossing_over_segments = list(zip(crossingover_points[:len(crossingover_points)], crossingover_points[1:]))
-      for s in range(len(crossing_over_segments)):
-        start = crossing_over_segments[s][0]
-        end = crossing_over_segments[s][1]
-        if s % 2 == 0:
-          new_genes[0][start:end] = self.genes[1][start:end]
-          new_genes[1][start:end] = self.genes[0][start:end]
-        else:
-          new_genes[0][start:end] = self.genes[0][start:end]
-          new_genes[1][start:end] = self.genes[1][start:end]
-      return(new_genes)
+        new_genes = deepcopy(self.genes)
+        crossingover_points.insert(0, 0)
+        crossingover_points.append(self.n_genes)
+        crossing_over_segments = list(zip(crossingover_points[:len(crossingover_points)], crossingover_points[1:]))
+        for s in range(len(crossing_over_segments)):
+            if s % 2 == 0:
+                start = crossing_over_segments[s][0]
+                end = crossing_over_segments[s][1]
+                new_genes[0][start:end], new_genes[1][start:end] = new_genes[1][start:end], new_genes[0][start:end]
+        return(new_genes)
 
     def generate_gametes(self, h_mean: float, h_sd: float):
         if self.meiosis == False:
@@ -117,6 +114,7 @@ class Simulation:
           on the fitness, while the other can be beneficial or detrimental
         * A genome is initialized randomly, each gene having a random dosage of
           the alleles
+        * There is no additional cost associated with sexual reproduction
     '''
     def __init__(self, c: int, n: int, p: int, s: int, h_mean: int, h_sd: float, x: float, g: int, m: float):
         self.carrying_capacity = c
@@ -131,22 +129,30 @@ class Simulation:
         self.n_generations = g
         self.mutation_rate = m
 
+    def compute_fitness(self, genome):
+        f = 0
+        for a in range(len(genome.genes)):
+            for g in range(len(genome.genes[a])):
+                f += self.gene_effects[g] * genome.genes[a][g]
+        return(f)    
+
     def propagate(self):
+        # TODO test propagate()
         genomes_indexes = [i for i in range(len(self.population))]
         fitness_list = [self.compute_fitness(self.population[i]) for i in range(len(self.population))]
         propagation_list = [x for _, x in sorted(zip(fitness_list, genomes_indexes))]
         new_population = []
         while len(new_population) < self.carrying_capacity and len(propagation_list) > 0:
+            # 1. remove and return the first genome from the queue propagation_list
+            parent_a = propagation_list.pop(0)
             if self.population[propagation_list[0]].meiosis:
-                # 1. remove and return the first genome from the queue propagation_list
                 # 2. identify next in the propagation_list that has meiosis, at index j
-                # 3. if no j, move to next iteration
-                # 4. if j, remove and return it from propagation_list
-                parent_a = propagation_list.pop(0)
                 j = 0
                 while self.population[propagation_list[j]].meiosis == False and j < len(propagation_list):
                     j = j + 1
+                # 3. if no j, move to next iteration
                 if j >= len(propagation_list):
+                    # 4. if j, remove and return it from propagation_list
                     parent_b = propagation_list.pop(j)
                     # 5. perform meiosis in parent_a and parent_b
                     parent_a.generate_gametes(h_mean = self.crossingover_length_mean,
@@ -163,23 +169,23 @@ class Simulation:
                       new_genome.genes = new_genes
                       new_population.append = new_genome                      
             else:
-                new_population.append(self.population[propagation_list[i]]) # duplicate the individual
-                new_population.append(self.population[propagation_list[i]])
-            i = i + 1
+                new_population.append(parent_a) # duplicate the individual
+                new_population.append(parent_a)
+        self.population = new_population
 
     def mutate_genomes(self):
-      for i in range(len(self.population)):
-        self.population[i].mutate(self.mutation_rate)
+        for i in range(len(self.population)):
+          self.population[i].mutate(self.mutation_rate)
 
     def start(self):
-      # initialize meiosis attribute in the population according to frequency x
-      for i in range(self.start_n_genomes):
-        if random() < self.start_sex_frac:
-          self.population[i].meiosis = True
-      # run simulation over n generations
-      for i in range(self.n_generations):
-        self.propagate()
-        self.mutate_genomes()
+        # initialize meiosis attribute in the population according to frequency x
+        for i in range(self.start_n_genomes):
+            if random() < self.start_sex_frac:
+                self.population[i].meiosis = True
+        # run simulation over n generations
+        for i in range(self.n_generations):
+            self.propagate()
+            self.mutate_genomes()
 
 def main():
     CARRYING_CAPACITY = 10000
