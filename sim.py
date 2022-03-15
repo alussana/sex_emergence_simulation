@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-# TODO: make non-sexually reproducible genomes aploid (?)
-# TODO: environment can change the gene_effects (additive fitness values)
-
 from copy import deepcopy
 from random import random
 from numpy.random import normal
@@ -22,11 +19,11 @@ class Genome:
     def __init__(self, n: int, p: int):
         self.n_genes = n
         self.ploidy = p
-        #self.genes = [[random() < 0.5 for i in range(n)] for i in range(p)]
-        phase_a = [random() < 0.5 for i in range(n)]
-        phase_b = phase_a.copy()
-        shuffle(phase_a)
-        self.genes = [phase_a, phase_b]
+        self.genes = [[random() < 0.5 for i in range(n)] for i in range(p)]
+        #phase_a = [random() < 0.5 for i in range(n)]
+        #phase_b = phase_a.copy()
+        #shuffle(phase_a)
+        #self.genes = [phase_a, phase_b]
         self.meiosis = False
 
     def mutate(self, mutation_rate):
@@ -139,21 +136,26 @@ class Simulation:
     def propagate(self):
         # TODO test propagate()
         genomes_indexes = [i for i in range(len(self.population))]
-        fitness_list = [self.compute_fitness(self.population[i]) for i in range(len(self.population))]
-        propagation_list = [x for _, x in sorted(zip(fitness_list, genomes_indexes))]
+        fitness_list = [self.compute_fitness(self.population[i]) for i in genomes_indexes]
+        propagation_list = [x for _, x in sorted(zip(fitness_list, genomes_indexes), reverse=True)]
         new_population = []
-        while len(new_population) < self.carrying_capacity and len(propagation_list) > 0:
-            # 1. remove and return the first genome from the queue propagation_list
-            parent_a = propagation_list.pop(0)
-            if self.population[propagation_list[0]].meiosis:
+        while (len(new_population) < self.carrying_capacity) and (len(propagation_list) > 0):
+            # 1. remove and return the first index from the queue propagation_list
+            parent_a_idx = propagation_list.pop(0)
+            parent_a = self.population[parent_a_idx]
+            if parent_a.meiosis:
                 # 2. identify next in the propagation_list that has meiosis, at index j
                 j = 0
-                while self.population[propagation_list[j]].meiosis == False and j < len(propagation_list):
-                    j = j + 1
+                while j < len(propagation_list):
+                    if self.population[propagation_list[j]].meiosis == True:
+                        break
+                    else:
+                        j = j + 1
                 # 3. if no j, move to next iteration
-                if j >= len(propagation_list):
+                if j < len(propagation_list):
                     # 4. if j, remove and return it from propagation_list
-                    parent_b = propagation_list.pop(j)
+                    parent_b_idx = propagation_list.pop(j)
+                    parent_b = self.population[parent_b_idx]
                     # 5. perform meiosis in parent_a and parent_b
                     parent_a.generate_gametes(h_mean = self.crossingover_length_mean,
                                               h_sd = self.crossingover_length_sd)
@@ -167,7 +169,7 @@ class Simulation:
                       new_genome = Genome(n=self.n_genes, p=self.ploidy)
                       new_genome.meiosis = True
                       new_genome.genes = new_genes
-                      new_population.append = new_genome                      
+                      new_population.append(new_genome)                      
             else:
                 new_population.append(parent_a) # duplicate the individual
                 new_population.append(parent_a)
@@ -198,11 +200,6 @@ def main():
     CROSSINGOVER_LENGTH_SD = 1 #5
     START_FRAC_SEX_GENOMES = 0.1
     N_GENERATIONS = 1000
-
-    # tests:
-    g = Genome(n=N_GENES, p=PLOIDY)
-
-
 
 if __name__ == '__main__':
     main()
