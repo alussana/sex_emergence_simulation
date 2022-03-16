@@ -173,23 +173,39 @@ class Simulation:
             else:
                 new_population.append(parent_a) # duplicate the individual
                 new_population.append(parent_a)
+                new_population.append(parent_a)
+                new_population.append(parent_a)
         self.population = new_population
 
     def mutate_genomes(self):
         for i in range(len(self.population)):
           self.population[i].mutate(self.mutation_rate)
 
+    def update_history(self):
+        n_sex_allele = 0
+        for i in range(len(self.population)):
+            if self.population[i].meiosis:
+                n_sex_allele += 1
+        self.history['n_individuals'].append(len(self.population))
+        self.history['n_sex_allele'].append(n_sex_allele)
+
     def start(self):
         # initialize meiosis attribute in the population according to frequency x
         for i in range(self.start_n_genomes):
             if random() < self.start_sex_frac:
                 self.population[i].meiosis = True
+        # initialise history
+        self.history = {'n_individuals': [],
+                        'n_sex_allele': []}
+        self.update_history()
         # run simulation over n generations
         for i in range(self.n_generations):
             self.propagate()
             self.mutate_genomes()
+            self.update_history()
 
 def main():
+
     CARRYING_CAPACITY = 10000
     START_N_GENOMES = 1000
     N_GENES = 100 #10000
@@ -200,6 +216,20 @@ def main():
     CROSSINGOVER_LENGTH_SD = 1 #5
     START_FRAC_SEX_GENOMES = 0.1
     N_GENERATIONS = 1000
+
+    sim = Simulation(
+        c=CARRYING_CAPACITY,
+        n=N_GENES,
+        p=PLOIDY,
+        s=START_N_GENOMES,
+        h_mean=CROSSINGOVER_LENGTH_MEAN,
+        h_sd=CROSSINGOVER_LENGTH_SD,
+        x=START_FRAC_SEX_GENOMES,
+        g=N_GENERATIONS,
+        m=MUTATION_RATE
+    )
+    
+    sim.start()
 
 if __name__ == '__main__':
     main()
