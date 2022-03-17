@@ -4,6 +4,7 @@ from copy import deepcopy
 from random import random
 from numpy.random import normal
 from random import shuffle
+import matplotlib.pyplot as plt
 
 class Genome:
     '''
@@ -188,6 +189,18 @@ class Simulation:
                 n_sex_allele += 1
         self.history['n_individuals'].append(len(self.population))
         self.history['n_sex_allele'].append(n_sex_allele)
+
+    def plot_counts(self, output_path):
+        n_sex_allele = self.history['n_sex_allele']
+        n_individuals = self.history['n_individuals']
+        plt.bar([i for i in range(len(n_individuals))], n_individuals, label='mitosis')
+        plt.bar([i for i in range(len(n_individuals))], n_sex_allele, label='meiosis')
+        plt.xlabel('Generation')
+        plt.ylabel('Individuals')
+        plt.legend()
+        plt.gca().spines['right'].set_color('none')
+        plt.gca().spines['top'].set_color('none')
+        plt.savefig(output_path, dpi=200)
 
     def start(self):
         # initialize meiosis attribute in the population according to frequency x
