@@ -1,5 +1,7 @@
 # sex_emergence_simulation
 
+Example parameters:
+
 ```
 CARRYING_CAPACITY = 2000
 START_N_GENOMES = 100
@@ -13,7 +15,9 @@ START_FRAC_SEX_GENOMES = 0.1
 N_GENERATIONS = 20
 ```
 
-```
+Run simulation:
+
+```python
 sim = Simulation(
         c=CARRYING_CAPACITY,
         n=N_GENES,
@@ -26,7 +30,8 @@ sim = Simulation(
         m=MUTATION_RATE
     )
     
-    sim.start()
+sim.start()
+sim.plot_counts('counts.png')
 ```
 
 ![](counts.png)

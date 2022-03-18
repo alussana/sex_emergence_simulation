@@ -200,6 +200,7 @@ class Simulation:
         plt.legend()
         plt.gca().spines['right'].set_color('none')
         plt.gca().spines['top'].set_color('none')
+        plt.tight_layout()
         plt.savefig(output_path, dpi=200)
 
     def start(self):
@@ -219,16 +220,16 @@ class Simulation:
 
 def main():
 
-    CARRYING_CAPACITY = 10000
-    START_N_GENOMES = 1000
-    N_GENES = 100 #10000
+    CARRYING_CAPACITY = 2000
+    START_N_GENOMES = 100
+    N_GENES = 100
     PLOIDY = 2
-    MUTATION_RATE = 0.1
+    MUTATION_RATE = 5 / N_GENES
     CROSSING_OVER = True
-    CROSSINGOVER_LENGTH_MEAN = 5 #50
-    CROSSINGOVER_LENGTH_SD = 1 #5
+    CROSSINGOVER_LENGTH_MEAN = 10
+    CROSSINGOVER_LENGTH_SD = 1
     START_FRAC_SEX_GENOMES = 0.1
-    N_GENERATIONS = 1000
+    N_GENERATIONS = 20
 
     sim = Simulation(
         c=CARRYING_CAPACITY,
@@ -243,6 +244,7 @@ def main():
     )
     
     sim.start()
+    sim.plot_counts('counts.png')
 
 if __name__ == '__main__':
     main()
