@@ -35,3 +35,5 @@ sim.plot_counts('counts.png')
 ```
 
 ![](counts.png)
+
+![](generations.png)

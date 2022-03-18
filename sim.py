@@ -135,7 +135,6 @@ class Simulation:
         return(f)    
 
     def propagate(self):
-        # TODO test propagate()
         genomes_indexes = [i for i in range(len(self.population))]
         fitness_list = [self.compute_fitness(self.population[i]) for i in genomes_indexes]
         propagation_list = [x for _, x in sorted(zip(fitness_list, genomes_indexes), reverse=True)]
@@ -182,15 +181,22 @@ class Simulation:
         for i in range(len(self.population)):
           self.population[i].mutate(self.mutation_rate)
 
-    def update_history(self):
+    def update_history(self, complete_history):
         n_sex_allele = 0
         for i in range(len(self.population)):
             if self.population[i].meiosis:
                 n_sex_allele += 1
         self.history['n_individuals'].append(len(self.population))
         self.history['n_sex_allele'].append(n_sex_allele)
+        if complete_history:
+            genomes_indexes = [i for i in range(len(self.population))]
+            fitness_list = [self.compute_fitness(self.population[i]) for i in genomes_indexes]
+            propagation_list = [x for _, x in sorted(zip(fitness_list, genomes_indexes))]
+            ranked_ind = [int(self.population[i].meiosis) for i in propagation_list]
+            self.history['generations'].append(ranked_ind)
 
     def plot_counts(self, output_path):
+        plt.clf()
         n_sex_allele = self.history['n_sex_allele']
         n_individuals = self.history['n_individuals']
         plt.bar([i for i in range(len(n_individuals))], n_individuals, label='mitosis')
@@ -203,25 +209,35 @@ class Simulation:
         plt.tight_layout()
         plt.savefig(output_path, dpi=200)
 
-    def start(self):
+    def plot_generations(self, output_path):
+        plt.clf()
+        plt.imshow(self.history['generations'], aspect='auto',
+                   interpolation='nearest', cmap='Greys')
+        plt.ylabel('Generation\n(simulation starts at 0)')
+        plt.xlabel('Individuals, ranked by fitness\n(0 corresponds to lowest fitess)')
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=200)
+
+    def start(self, complete_history=False):
         # initialize meiosis attribute in the population according to frequency x
         for i in range(self.start_n_genomes):
             if random() < self.start_sex_frac:
                 self.population[i].meiosis = True
         # initialise history
         self.history = {'n_individuals': [],
-                        'n_sex_allele': []}
-        self.update_history()
+                        'n_sex_allele': [],
+                        'generations': []}
+        self.update_history(complete_history=complete_history)
         # run simulation over n generations
         for i in range(self.n_generations):
             self.propagate()
             self.mutate_genomes()
-            self.update_history()
+            self.update_history(complete_history=complete_history)
 
 def main():
 
     CARRYING_CAPACITY = 2000
-    START_N_GENOMES = 100
+    START_N_GENOMES = 2000
     N_GENES = 100
     PLOIDY = 2
     MUTATION_RATE = 5 / N_GENES
@@ -243,8 +259,9 @@ def main():
         m=MUTATION_RATE
     )
     
-    sim.start()
+    sim.start(complete_history=True)
     sim.plot_counts('counts.png')
+    sim.plot_generations('generations.png')
 
 if __name__ == '__main__':
     main()
